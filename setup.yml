@@ -1,0 +1,110 @@
+---
+- name: apt update and upgrade
+  hosts: myhosts
+  become: true
+  tasks:
+  - name: apt update
+    ansible.builtin.apt:
+      name: "*"
+      update_cache: yes
+    tags:
+      - apt_upgrade
+- name: Install net-tools
+  hosts: myhosts
+  become: true
+  tasks:
+  - name: net-tool Install
+    ansible.builtin.apt:
+      name: net-tools
+    tags:
+      - net-tools
+- name: Install nginx
+  hosts: myhosts
+  become: true
+  tasks:
+  - name: nginx install and configure
+    ansible.builtin.apt:
+      name: nginx
+    tags:
+      - nginx_install
+  - name: create /var/www/tutorial
+    ansible.builtin.file:
+      path: /var/www/tutorial
+      state: directory
+      mode: '0755'
+    tags:
+      - nginx_install    
+  - name: create index.html
+    ansible.builtin.file:
+      path: /var/www/tutorial/index.html
+      state: touch
+      mode: "0644"
+    tags:
+      - nginx_install
+  - name: write to index
+    ansible.builtin.copy:
+      dest: /var/www/tutorial/index.html
+      content: |
+        <!doctype html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Hello, Nginx!</title>
+        </head>
+        <body>
+          <h1>Hello, Nginx!</h1>
+          <p>We have just configured our Nginx web server on Ubuntu Server!</p>
+        </body>
+        </html>
+    tags:
+      - nginx_install
+  - name: create /etc/nginx/sites-enabled
+    ansible.builtin.file:
+      path: /etc/nginx/sites-enabled
+      state: directory
+      mode: "0755"
+    tags:
+      - nginx_install
+  - name: create nginx virtual host file
+    ansible.builtin.file:
+      path: /etc/nginx/sites-enabled/tutorial
+      state: touch
+      mode: "0644"
+    tags:
+      - nginx_install
+  - name: write to tutorial
+    ansible.builtin.copy:
+      dest: /etc/nginx/sites-enabled/tutorial
+      content: |
+        server {
+          listen 81;
+          listen [::]:81;
+
+          server_name mytestsite.com;
+
+          root /var/www/tutorial;
+          index index.html;
+
+          location / {
+               try_files $uri $uri/ =404;
+          }
+        }
+    tags:
+      - nginx_install
+  - name: restart nginx
+    ansible.builtin.service:
+      name: nginx
+      state: restarted
+    tags:
+      - nginx_install
+- name: Transfer tarball and unarchive
+  hosts: myhosts
+  become: true
+  tasks:
+  - name: send and unarchive
+    ansible.builtin.unarchive:
+      src: /home/jli/RoadMap/configuration_management/html_tar.tar.gz
+      dest: /home/jli
+      remote_src: no
+  tags:
+    - unarchive
